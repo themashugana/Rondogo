@@ -5,181 +5,191 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rondo</title>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #1a2e1a; font-family: sans-serif; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px; min-height: 100vh; }
-  h1 { font-size: 22px; font-weight: 500; margin-bottom: 8px; letter-spacing: 2px; color: #a8d4a8; }
- 
-  #ui { display: flex; gap: 16px; align-items: flex-start; width: 100%; max-width: 1100px; }
- 
-  #board-wrap { flex-shrink: 0; }
-  #board { display: grid; grid-template-columns: repeat(15, 36px); grid-template-rows: repeat(20, 36px); gap: 1px; background: #0d1f0d; border: 2px solid #2e5c2e; position: relative; }
- 
-  .cell {
-    width: 36px; height: 36px;
-    background: #2d5a2d;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer; position: relative; font-size: 11px;
-  }
-  .cell:hover { background: #3a6e3a; }
-  .cell.zone-end { background: #1e3e1e; }
-  .cell.zone-penalty { background: #253f25; }
-  .cell.selected { background: #6a9e2e !important; outline: 2px solid #aaff44; }
-  .cell.valid-move { background: #3a6e5a !important; cursor: pointer; }
-  .cell.valid-move::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: rgba(100,255,180,0.5); position: absolute; }
-  .cell.pressured { background: #5a3a2a !important; }
- 
-  .piece {
-    width: 28px; height: 28px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 9px; font-weight: 700; cursor: pointer;
-    border: 2px solid rgba(255,255,255,0.4);
-    position: relative; z-index: 2; line-height: 1.1; text-align: center;
-    user-select: none;
-  }
-  .piece.team-a { background: #2255cc; color: #fff; border-color: #88aaff; }
-  .piece.team-b { background: #cc2222; color: #fff; border-color: #ffaaaa; }
-  .piece.has-ball::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #ffdd00; border: 1px solid #aa8800; position: absolute; top: -2px; right: -2px; }
-  .piece.selected-piece { outline: 3px solid #ffdd00; outline-offset: 1px; }
- 
-  .ball-loose {
-    width: 16px; height: 16px; border-radius: 50%;
-    background: #ffdd00; border: 2px solid #aa8800;
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-    z-index: 3; pointer-events: none;
-  }
- 
-  #panel { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 12px; }
- 
-  .card { background: #1a3a1a; border: 1px solid #2e5c2e; border-radius: 8px; padding: 12px 14px; }
-  .card h3 { font-size: 13px; color: #7ab87a; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
- 
-  #score-display { display: flex; justify-content: space-between; align-items: center; }
-  .score-team { text-align: center; }
-  .score-team .name { font-size: 12px; color: #7ab87a; }
-  .score-team .goals { font-size: 32px; font-weight: 700; }
-  .score-sep { font-size: 20px; color: #555; }
-  .score-team.a .goals { color: #88aaff; }
-  .score-team.b .goals { color: #ffaaaa; }
- 
-  #turn-info { font-size: 13px; color: #aaa; }
-  #turn-info strong { color: #fff; }
-  #actions-left { display: flex; gap: 6px; margin-top: 8px; }
-  .action-pip { width: 12px; height: 12px; border-radius: 50%; background: #ffdd00; }
-  .action-pip.used { background: #333; }
- 
-  #selected-info { font-size: 13px; }
-  #selected-info .piece-name { font-size: 15px; font-weight: 500; color: #fff; margin-bottom: 4px; }
-  #selected-info .piece-type { font-size: 12px; color: #7ab87a; margin-bottom: 8px; }
-  .attr-row { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 12px; }
-  .attr-label { color: #888; }
-  .attr-bar { display: flex; gap: 2px; align-items: center; }
-  .attr-pip { width: 8px; height: 8px; border-radius: 2px; background: #333; }
-  .attr-pip.filled { background: #6ab86a; }
- 
-  #action-btns { display: flex; flex-direction: column; gap: 6px; }
-  .action-btn {
-    background: transparent; border: 1px solid #2e5c2e; color: #aaa;
-    padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
-    text-align: left; transition: all 0.15s;
-  }
-  .action-btn:hover:not(:disabled) { background: #253f25; color: #fff; border-color: #4a8a4a; }
-  .action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-  .action-btn.active { background: #253f25; border-color: #6ab86a; color: #fff; }
- 
-  #log { max-height: 160px; overflow-y: auto; }
-  #log-entries { display: flex; flex-direction: column; gap: 4px; }
-  .log-entry { font-size: 12px; color: #888; padding: 3px 0; border-bottom: 1px solid #1e3e1e; }
-  .log-entry.success { color: #6ab86a; }
-  .log-entry.fail { color: #cc6666; }
-  .log-entry.info { color: #aaaacc; }
-  .log-entry.goal { color: #ffdd00; font-weight: 500; }
- 
-  #end-turn-btn {
-    background: #2e5c2e; border: none; color: #fff; padding: 10px;
-    border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
-    transition: background 0.15s; width: 100%;
-  }
-  #end-turn-btn:hover { background: #3a7a3a; }
- 
-  .coord-label { position: absolute; font-size: 7px; color: rgba(255,255,255,0.15); top: 1px; left: 2px; pointer-events: none; }
- 
-  #goal-overlay {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100; display: none;
-  }
-  #goal-box { background: #1a2e1a; border: 2px solid #ffdd00; border-radius: 12px; padding: 32px 48px; text-align: center; }
-  #goal-box h2 { font-size: 36px; color: #ffdd00; margin-bottom: 8px; }
-  #goal-box p { color: #aaa; margin-bottom: 16px; }
-  #goal-box button { background: #2e5c2e; border: none; color: #fff; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a2e1a; font-family: sans-serif; color: #fff; display: flex; flex-direction: column; align-items: center; padding: 16px; min-height: 100vh; }
+h1 { font-size: 22px; font-weight: 500; margin-bottom: 8px; letter-spacing: 2px; color: #a8d4a8; }
+#ui { display: flex; gap: 16px; align-items: flex-start; width: 100%; max-width: 1100px; }
+#board-wrap { flex-shrink: 0; position: relative; }
+#board {
+  display: grid;
+  grid-template-columns: repeat(15, 36px);
+  grid-template-rows: repeat(20, 36px);
+  gap: 1px;
+  background: #0d1f0d;
+  border: 2px solid #fff;
+  position: relative;
+}
+.cell {
+  width: 36px; height: 36px;
+  background: #2d5a2d;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; position: relative; font-size: 11px;
+}
+.cell:hover { background: #3a6e3a; }
+.cell.zone-end { background: #1e3e1e; }
+.cell.zone-penalty { background: #253f25; }
+.cell.selected { background: #6a9e2e !important; outline: 2px solid #aaff44; }
+.cell.valid-move { background: #3a6e5a !important; cursor: pointer; }
+.cell.valid-move::after { content: ''; width: 10px; height: 10px; border-radius: 50%; background: rgba(100,255,180,0.5); position: absolute; }
+.piece {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700; cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.4);
+  position: relative; z-index: 2; line-height: 1.1; text-align: center;
+  user-select: none;
+}
+.piece.team-a { background: #2255cc; color: #fff; border-color: #88aaff; }
+.piece.team-b { background: #cc2222; color: #fff; border-color: #ffaaaa; }
+.piece.has-ball::after { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #ffdd00; border: 1px solid #aa8800; position: absolute; top: -2px; right: -2px; }
+.piece.selected-piece { outline: 3px solid #ffdd00; outline-offset: 1px; }
+.ball-loose {
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #ffdd00; border: 2px solid #aa8800;
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  z-index: 3; pointer-events: none;
+}
+#pitch-lines {
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none; z-index: 1;
+}
+#panel { flex: 1; min-width: 260px; display: flex; flex-direction: column; gap: 12px; }
+.card { background: #1a3a1a; border: 1px solid #2e5c2e; border-radius: 8px; padding: 12px 14px; }
+.card h3 { font-size: 13px; color: #7ab87a; font-weight: 500; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+#score-display { display: flex; justify-content: space-between; align-items: center; }
+.score-team { text-align: center; }
+.score-team .name { font-size: 12px; color: #7ab87a; }
+.score-team .goals { font-size: 32px; font-weight: 700; }
+.score-sep { font-size: 20px; color: #555; }
+.score-team.a .goals { color: #88aaff; }
+.score-team.b .goals { color: #ffaaaa; }
+#turn-info { font-size: 13px; color: #aaa; }
+#turn-info strong { color: #fff; }
+#actions-left { display: flex; gap: 6px; margin-top: 8px; }
+.action-pip { width: 12px; height: 12px; border-radius: 50%; background: #ffdd00; }
+.action-pip.used { background: #333; }
+#selected-info { font-size: 13px; }
+#selected-info .piece-name { font-size: 15px; font-weight: 500; color: #fff; margin-bottom: 4px; }
+#selected-info .piece-type { font-size: 12px; color: #7ab87a; margin-bottom: 8px; }
+.attr-row { display: flex; justify-content: space-between; margin-bottom: 3px; font-size: 12px; }
+.attr-label { color: #888; }
+.attr-bar { display: flex; gap: 2px; align-items: center; }
+.attr-pip { width: 8px; height: 8px; border-radius: 2px; background: #333; }
+.attr-pip.filled { background: #6ab86a; }
+#action-btns { display: flex; flex-direction: column; gap: 6px; }
+.action-btn {
+  background: transparent; border: 1px solid #2e5c2e; color: #aaa;
+  padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+  text-align: left; transition: all 0.15s;
+}
+.action-btn:hover:not(:disabled) { background: #253f25; color: #fff; border-color: #4a8a4a; }
+.action-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.action-btn.active { background: #253f25; border-color: #6ab86a; color: #fff; }
+#log { max-height: 160px; overflow-y: auto; }
+#log-entries { display: flex; flex-direction: column; gap: 4px; }
+.log-entry { font-size: 12px; color: #888; padding: 3px 0; border-bottom: 1px solid #1e3e1e; }
+.log-entry.success { color: #6ab86a; }
+.log-entry.fail { color: #cc6666; }
+.log-entry.info { color: #aaaacc; }
+.log-entry.goal { color: #ffdd00; font-weight: 500; }
+#end-turn-btn {
+  background: #2e5c2e; border: none; color: #fff; padding: 10px;
+  border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;
+  transition: background 0.15s; width: 100%;
+}
+#end-turn-btn:hover { background: #3a7a3a; }
+.coord-label {
+  position: absolute; font-size: 7px;
+  color: rgba(255,255,255,0.55);
+  top: 1px; left: 2px;
+  pointer-events: none; z-index: 1; line-height: 1;
+}
+#goal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; align-items: center; justify-content: center; z-index: 100;
+}
+#goal-box { background: #1a2e1a; border: 2px solid #ffdd00; border-radius: 12px; padding: 32px 48px; text-align: center; }
+#goal-box h2 { font-size: 36px; color: #ffdd00; margin-bottom: 8px; }
+#goal-box p { color: #aaa; margin-bottom: 16px; }
+#goal-box button { background: #2e5c2e; border: none; color: #fff; padding: 10px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; }
 </style>
 </head>
 <body>
- 
 <h1>RONDO</h1>
- 
 <div id="ui">
-  <div id="board-wrap">
-    <div id="board"></div>
+<div id="board-wrap">
+  <div id="board"></div>
+  <!-- SVG pitch markings. Each cell = 36px + 1px gap = 37px. -->
+  <!-- Col c left edge = (c-1)*37. Row r top edge = (r-1)*37. -->
+  <svg id="pitch-lines" viewBox="0 0 557 742" xmlns="http://www.w3.org/2000/svg">
+    <!-- Halfway line: between rows 10 and 11, y = 10*37 = 370 -->
+    <line x1="0" y1="370" x2="557" y2="370" stroke="white" stroke-width="1.5"/>
+    <!-- Centre spot: col 8 centre x = 7.5*37 = 277.5 -->
+    <circle cx="277.5" cy="370" r="3" fill="white"/>
+    <!-- Centre circle -->
+    <circle cx="277.5" cy="370" r="74" fill="none" stroke="white" stroke-width="1.5"/>
+    <!-- Blue penalty box: rows 1-4, cols 4-12
+         x = (4-1)*37 = 111, width = 9*37 = 333, height = 4*37 = 148 -->
+    <rect x="111" y="0" width="333" height="148" fill="none" stroke="white" stroke-width="1.5"/>
+    <!-- Blue 6-yard box: rows 1-2, cols 6-10
+         x = (6-1)*37 = 185, width = 5*37 = 185, height = 2*37 = 74 -->
+    <rect x="185" y="0" width="185" height="74" fill="none" stroke="white" stroke-width="1.5"/>
+    <!-- Blue penalty spot: col 8, row 3 centre = y = 2.5*37 = 92.5 -->
+    <circle cx="277.5" cy="92" r="3" fill="white"/>
+    <!-- Blue penalty arc (curves outward from bottom of box, y=148) -->
+    <path d="M 185 148 A 78 78 0 0 0 370 148" fill="none" stroke="white" stroke-width="1.5"/>
+    <!-- Red penalty box: rows 17-20, cols 4-12
+         y = (17-1)*37 = 592, height = 4*37 = 148 -->
+    <rect x="111" y="592" width="333" height="148" fill="none" stroke="white" stroke-width="1.5"/>
+    <!-- Red 6-yard box: rows 19-20, cols 6-10
+         y = (19-1)*37 = 666, height = 2*37 = 74 -->
+    <rect x="185" y="666" width="185" height="74" fill="none" stroke="white" stroke-width="1.5"/>
+    <!-- Red penalty spot: col 8, row 18 centre = y = 17.5*37 = 647.5 -->
+    <circle cx="277.5" cy="648" r="3" fill="white"/>
+    <!-- Red penalty arc (curves outward from top of box, y=592) -->
+    <path d="M 185 592 A 78 78 0 0 1 370 592" fill="none" stroke="white" stroke-width="1.5"/>
+  </svg>
+</div>
+<div id="panel">
+  <div class="card">
+    <h3>Score</h3>
+    <div id="score-display">
+      <div class="score-team a"><div class="name">BLUE</div><div class="goals" id="score-a">0</div></div>
+      <div class="score-sep">—</div>
+      <div class="score-team b"><div class="name">RED</div><div class="goals" id="score-b">0</div></div>
+    </div>
   </div>
- 
-  <div id="panel">
- 
-    <div class="card">
-      <h3>Score</h3>
-      <div id="score-display">
-        <div class="score-team a">
-          <div class="name">BLUE</div>
-          <div class="goals" id="score-a">0</div>
-        </div>
-        <div class="score-sep">—</div>
-        <div class="score-team b">
-          <div class="name">RED</div>
-          <div class="goals" id="score-b">0</div>
-        </div>
-      </div>
+  <div class="card">
+    <h3>Turn</h3>
+    <div id="turn-info"><strong id="turn-team">Blue's Turn</strong> — Turn <span id="turn-count">1</span></div>
+    <div id="actions-left">
+      <div class="action-pip" id="pip0"></div>
+      <div class="action-pip" id="pip1"></div>
+      <div class="action-pip" id="pip2"></div>
     </div>
- 
-    <div class="card">
-      <h3>Turn</h3>
-      <div id="turn-info">
-        <strong id="turn-team">Blue's Turn</strong> — Turn <span id="turn-count">1</span>
-      </div>
-      <div id="actions-left">
-        <div class="action-pip" id="pip0"></div>
-        <div class="action-pip" id="pip1"></div>
-        <div class="action-pip" id="pip2"></div>
-      </div>
+  </div>
+  <div class="card">
+    <h3>Selected Player</h3>
+    <div id="selected-info"><div style="color:#555; font-size:13px;">Click a player to select</div></div>
+  </div>
+  <div class="card">
+    <h3>Actions</h3>
+    <div id="action-btns">
+      <button class="action-btn" id="btn-move" disabled>Move</button>
+      <button class="action-btn" id="btn-dribble" disabled>Dribble</button>
+      <button class="action-btn" id="btn-pass" disabled>Pass</button>
+      <button class="action-btn" id="btn-shoot" disabled>Shoot</button>
+      <button class="action-btn" id="btn-tackle" disabled>Tackle</button>
     </div>
- 
-    <div class="card">
-      <h3>Selected Player</h3>
-      <div id="selected-info">
-        <div style="color:#555; font-size:13px;">Click a player to select</div>
-      </div>
-    </div>
- 
-    <div class="card">
-      <h3>Actions</h3>
-      <div id="action-btns">
-        <button class="action-btn" id="btn-move" disabled>Move</button>
-        <button class="action-btn" id="btn-dribble" disabled>Dribble</button>
-        <button class="action-btn" id="btn-pass" disabled>Pass</button>
-        <button class="action-btn" id="btn-shoot" disabled>Shoot</button>
-        <button class="action-btn" id="btn-tackle" disabled>Tackle</button>
-      </div>
-    </div>
- 
-    <button id="end-turn-btn">End Turn →</button>
- 
-    <div class="card">
-      <h3>Log</h3>
-      <div id="log"><div id="log-entries"></div></div>
-    </div>
- 
+  </div>
+  <button id="end-turn-btn">End Turn →</button>
+  <div class="card">
+    <h3>Log</h3>
+    <div id="log"><div id="log-entries"></div></div>
   </div>
 </div>
- 
+</div>
 <div id="goal-overlay">
   <div id="goal-box">
     <h2>GOAL!</h2>
@@ -187,513 +197,326 @@
     <button onclick="dismissGoal()">Continue</button>
   </div>
 </div>
- 
 <script>
 const COLS = 15, ROWS = 20;
- 
 const ARCHETYPES = {
-  GK:  { moveRange: 2, passRange: 10, shotRange: 0, label: 'GK',  color: '#4444aa' },
-  CB:  { moveRange: 3, passRange: 7,  shotRange: 2, label: 'CB',  color: null },
-  FB:  { moveRange: 4, passRange: 5,  shotRange: 3, label: 'FB',  color: null },
-  MF:  { moveRange: 4, passRange: 9,  shotRange: 6, label: 'MF',  color: null },
-  WG:  { moveRange: 5, passRange: 5,  shotRange: 4, label: 'WG',  color: null },
-  ST:  { moveRange: 4, passRange: 4,  shotRange: 5, label: 'ST',  color: null },
+  GK: { moveRange:2, passRange:10, shotRange:0, label:'GK' },
+  CB: { moveRange:3, passRange:7,  shotRange:2, label:'CB' },
+  FB: { moveRange:4, passRange:5,  shotRange:3, label:'FB' },
+  MF: { moveRange:4, passRange:9,  shotRange:6, label:'MF' },
+  WG: { moveRange:5, passRange:5,  shotRange:4, label:'WG' },
+  ST: { moveRange:4, passRange:4,  shotRange:5, label:'ST' },
 };
  
-function makePlayer(id, name, archetype, col, row, team, attrs) {
-  return { id, name, archetype, col, row, team, attrs, hasBall: false, usedThisTurn: false };
+function defaultAttrs(arch) {
+  const r = { GK:[3,6,4,1,4,9], CB:[4,5,5,2,8,1], FB:[6,5,5,3,7,1], MF:[6,7,7,6,6,1], WG:[8,5,6,6,3,1], ST:[7,5,7,8,2,1] }[arch];
+  return { pace:r[0], passing:r[1], control:r[2], shooting:r[3], defending:r[4], goalkeeping:r[5] };
 }
  
-function defaultAttrs(archetype) {
-  const ranges = {
-    GK: [3,6,4,1,4,9], CB: [4,5,5,2,8,1], FB: [6,5,5,3,7,1],
-    MF: [6,7,7,6,6,1], WG: [8,5,6,6,3,1], ST: [7,5,7,8,2,1]
-  };
-  const r = ranges[archetype];
-  return { pace: r[0], passing: r[1], control: r[2], shooting: r[3], defending: r[4], goalkeeping: r[5] };
-}
- 
-const formations442 = [
+// 4-4-2 starting positions — Team A (Blue), attacks toward row 20
+const formation442 = [
   { arch:'GK', col:8,  row:2  },
-  { arch:'CB', col:5,  row:5  },
-  { arch:'CB', col:11, row:5  },
-  { arch:'FB', col:2,  row:5  },
-  { arch:'FB', col:14, row:5  },
+  { arch:'CB', col:6,  row:6  },
+  { arch:'CB', col:10, row:6  },
+  { arch:'FB', col:3,  row:6  },
+  { arch:'FB', col:13, row:6  },
   { arch:'MF', col:3,  row:8  },
+  { arch:'MF', col:13, row:8  },
   { arch:'MF', col:6,  row:8  },
   { arch:'MF', col:10, row:8  },
-  { arch:'MF', col:13, row:8  },
-  { arch:'ST', col:5,  row:9  },
-  { arch:'ST', col:11, row:9  },
+  { arch:'ST', col:6,  row:10 },
+  { arch:'ST', col:10, row:10 },
 ];
  
 const namesA = ['Hart','Stone','Drake','Finch','Cross','Reed','Miles','Fox','Bell','Cole','Webb'];
 const namesB = ['Rosa','Vega','Cruz','Mora','Lima','Diaz','Ruiz','Soto','Rios','Lara','Pena'];
  
 let players = [];
-let pId = 0;
-formations442.forEach((p, i) => {
-  players.push(makePlayer(pId++, namesA[i], p.arch, p.col, p.row, 'A', defaultAttrs(p.arch)));
+let pid = 0;
+formation442.forEach((p,i) => {
+  players.push({ id:pid++, name:namesA[i], archetype:p.arch, col:p.col, row:p.row, team:'A', attrs:defaultAttrs(p.arch), hasBall:false, usedThisTurn:false });
 });
-formations442.forEach((p, i) => {
-  const row = 21 - p.row;
-  const col = p.col;
-  players.push(makePlayer(pId++, namesB[i], p.arch, col, row, 'B', defaultAttrs(p.arch)));
+formation442.forEach((p,i) => {
+  players.push({ id:pid++, name:namesB[i], archetype:p.arch, col:p.col, row:21-p.row, team:'B', attrs:defaultAttrs(p.arch), hasBall:false, usedThisTurn:false });
 });
  
-let gameState = {
-  currentTeam: 'A',
-  actionsLeft: 3,
-  turnCount: 1,
-  scoreA: 0,
-  scoreB: 0,
-  selectedPlayer: null,
-  activeAction: null,
-  looseBall: null,
-  usedPlayersThisTurn: new Set(),
+// Blue ST (index 9) starts with ball
+players[9].hasBall = true;
+ 
+let gs = {
+  currentTeam:'A', actionsLeft:3, turnCount:1,
+  scoreA:0, scoreB:0,
+  selectedPlayer:null, activeAction:null,
+  looseBall:null, usedPlayersThisTurn:new Set(),
 };
  
-players[0].hasBall = true;
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getPlayer(col,row) { return players.find(p => p.col===col && p.row===row); }
+function cheby(c1,r1,c2,r2) { return Math.max(Math.abs(c2-c1),Math.abs(r2-r1)); }
+function isCentral(col) { return col>=6 && col<=10; }
+function isBlueBox(col,row) { return row>=1  && row<=4  && col>=4 && col<=12; }
+function isRedBox(col,row)  { return row>=17 && row<=20 && col>=4 && col<=12; }
+function isOwnBox(col,row,team)  { return team==='A' ? isBlueBox(col,row) : isRedBox(col,row); }
+function isOppBox(col,row,team)  { return team==='A' ? isRedBox(col,row)  : isBlueBox(col,row); }
+function isOwnDefThird(row,team) { return team==='A' ? row<=7  : row>=14; }
+function isOppAttThird(row,team) { return team==='A' ? row>=14 : row<=7;  }
  
-function getCell(col, row) {
-  return document.querySelector(`.cell[data-col="${col}"][data-row="${row}"]`);
-}
- 
-function getPlayer(col, row) {
-  return players.find(p => p.col === col && p.row === row);
-}
- 
-function getBallHolder() {
-  return players.find(p => p.hasBall);
-}
- 
-function chebyshev(c1, r1, c2, r2) {
-  return Math.max(Math.abs(c2 - c1), Math.abs(r2 - r1));
-}
- 
-function manhattan(c1, r1, c2, r2) {
-  return Math.abs(c2 - c1) + Math.abs(r2 - r1);
-}
- 
-function isInBounds(col, row) {
-  return col >= 1 && col <= COLS && row >= 1 && row <= ROWS;
-}
- 
-function isCentralCol(col) { return col >= 6 && col <= 10; }
-function isOwnDefThird(row, team) { return team === 'A' ? row <= 7 : row >= 14; }
-function isOppAttThird(row, team) { return team === 'A' ? row >= 14 : row <= 7; }
-function isOwnHalf(row, team) { return team === 'A' ? row <= 10 : row >= 11; }
-function isOppHalf(row, team) { return team === 'A' ? row >= 11 : row <= 10; }
-function isOwnBox(col, row, team) {
-  if (team === 'A') return row <= 5 && col >= 5 && col <= 11;
-  return row >= 16 && col >= 5 && col <= 11;
-}
- 
-function canMoveToSquare(player, toCol, toRow) {
-  if (!isInBounds(toCol, toRow)) return false;
-  if (getPlayer(toCol, toRow)) return false;
-  const dist = chebyshev(player.col, player.row, toCol, toRow);
-  const arch = player.archetype;
-  const range = ARCHETYPES[arch].moveRange;
-  if (dist > range) return false;
- 
-  if (arch === 'GK') {
-    if (!isOwnBox(toCol, toRow, player.team)) return false;
+function canMove(player,tc,tr) {
+  if (tc<1||tc>COLS||tr<1||tr>ROWS) return false;
+  if (getPlayer(tc,tr)) return false;
+  if (cheby(player.col,player.row,tc,tr) > ARCHETYPES[player.archetype].moveRange) return false;
+  const a = player.archetype, t = player.team;
+  if (a==='GK' && !isOwnBox(tc,tr,t)) return false;
+  if (a==='CB' && (t==='A' ? tr>10 : tr<11)) return false;
+  if (a==='FB') {
+    if (isCentral(tc)) return false;
+    if (isOppAttThird(tr,t)) return false;
+    if (Math.abs(tc-player.col)>2) return false;
   }
-  if (arch === 'CB') {
-    const halfRow = player.team === 'A' ? 11 : 10;
-    if (player.team === 'A' && toRow > 10) return false;
-    if (player.team === 'B' && toRow < 11) return false;
-  }
-  if (arch === 'FB') {
-    if (isCentralCol(toCol)) return false;
-    if (isOppAttThird(toRow, player.team)) return false;
-    const dCol = Math.abs(toCol - player.col);
-    if (dCol > 2) return false;
-  }
-  if (arch === 'WG') {
-    if (isCentralCol(toCol)) return false;
-    if (isOwnDefThird(toRow, player.team)) return false;
-  }
-  if (arch === 'ST') {
-    if (isOwnDefThird(toRow, player.team)) return false;
-  }
+  if (a==='WG' && (isCentral(tc) || isOwnDefThird(tr,t))) return false;
+  if (a==='ST' && isOwnDefThird(tr,t)) return false;
   return true;
 }
  
-function getValidMoves(player) {
-  const moves = [];
-  const range = ARCHETYPES[player.archetype].moveRange;
-  for (let c = Math.max(1, player.col - range); c <= Math.min(COLS, player.col + range); c++) {
-    for (let r = Math.max(1, player.row - range); r <= Math.min(ROWS, player.row + range); r++) {
-      if (c === player.col && r === player.row) continue;
-      if (canMoveToSquare(player, c, r)) moves.push({col: c, row: r});
-    }
-  }
+function validMoves(player) {
+  const moves=[], rng=ARCHETYPES[player.archetype].moveRange;
+  for (let c=Math.max(1,player.col-rng);c<=Math.min(COLS,player.col+rng);c++)
+    for (let r=Math.max(1,player.row-rng);r<=Math.min(ROWS,player.row+rng);r++)
+      if ((c!==player.col||r!==player.row) && canMove(player,c,r)) moves.push({col:c,row:r});
   return moves;
 }
  
-function getValidPassTargets(player) {
-  const range = ARCHETYPES[player.archetype].passRange;
-  return players.filter(p => p.team === player.team && p !== player && chebyshev(player.col, player.row, p.col, p.row) <= range);
+function validPassTargets(player) {
+  const rng=ARCHETYPES[player.archetype].passRange;
+  return players.filter(p=>p.team===player.team && p!==player && cheby(player.col,player.row,p.col,p.row)<=rng);
 }
  
-function getValidShootTargets(player) {
-  const range = ARCHETYPES[player.archetype].shotRange;
-  if (range === 0) return [];
-  const goalRow = player.team === 'A' ? 20 : 1;
-  const goalCols = [6,7,8,9,10];
-  const targets = [];
-  goalCols.forEach(gc => {
-    const dist = chebyshev(player.col, player.row, gc, goalRow);
-    if (dist <= range) targets.push({col: gc, row: goalRow});
-  });
+function validShootTargets(player) {
+  const rng=ARCHETYPES[player.archetype].shotRange;
+  if (!rng) return [];
+  const goalRow = player.team==='A'?20:1;
+  const targets=[];
+  for (let gc=6;gc<=10;gc++) if (cheby(player.col,player.row,gc,goalRow)<=rng) targets.push({col:gc,row:goalRow});
   return targets;
 }
  
-function getValidTackleTargets(player) {
-  return players.filter(p => p.team !== player.team && (p.hasBall || gameState.looseBall) && chebyshev(player.col, player.row, p.col, p.row) <= 1);
+function validTackleTargets(player) {
+  return players.filter(p=>p.team!==player.team && p.hasBall && cheby(player.col,player.row,p.col,p.row)<=1);
 }
  
-function rollProbability(pct) {
-  return Math.random() * 100 < pct;
-}
+function roll(pct) { return Math.random()*100 < pct; }
+function aMod(v) { return (v-5.5)*5; }
  
-function attrMod(val) {
-  return (val - 5.5) * 5;
-}
- 
-function calcPassProb(passer, receiver) {
-  let prob = 65;
-  const dist = chebyshev(passer.col, passer.row, receiver.col, receiver.row);
-  const maxRange = ARCHETYPES[passer.archetype].passRange;
-  if (dist <= maxRange / 3) prob += 10;
-  else if (dist > (maxRange * 2) / 3) prob -= 10;
- 
-  prob += attrMod(passer.attrs.passing);
-  prob += attrMod(receiver.attrs.control) * 0.6;
- 
-  const enemies = players.filter(p => p.team !== passer.team);
-  enemies.forEach(e => {
-    if (chebyshev(e.col, e.row, passer.col, passer.row) <= 1) prob -= 15;
-    if (chebyshev(e.col, e.row, receiver.col, receiver.row) <= 1) prob -= 10;
+function passProb(passer,recv) {
+  let p=65;
+  const d=cheby(passer.col,passer.row,recv.col,recv.row), mx=ARCHETYPES[passer.archetype].passRange;
+  if (d<=mx/3) p+=10; else if (d>mx*2/3) p-=10;
+  p+=aMod(passer.attrs.passing);
+  p+=aMod(recv.attrs.control)*0.6;
+  players.filter(e=>e.team!==passer.team).forEach(e=>{
+    if (cheby(e.col,e.row,passer.col,passer.row)<=1) p-=15;
+    if (cheby(e.col,e.row,recv.col,recv.row)<=1) p-=10;
   });
- 
-  return Math.max(5, Math.min(95, prob));
+  return Math.max(5,Math.min(95,p));
 }
  
-function calcShootProb(shooter, goalCol, goalRow) {
-  const gk = players.find(p => p.team !== shooter.team && p.archetype === 'GK');
-  const inBox = isOwnBox(shooter.col, shooter.row, shooter.team === 'A' ? 'B' : 'A');
-  const central = isCentralCol(shooter.col);
- 
-  let prob = 50;
-  if (inBox && central) prob = 60;
-  else if (inBox && !central) prob = 45;
-  else if (!inBox && central) prob = 40;
-  else prob = 25;
- 
-  prob += attrMod(shooter.attrs.shooting);
- 
+function shootProb(shooter,gc,gr) {
+  const gk=players.find(p=>p.team!==shooter.team&&p.archetype==='GK');
+  const inBox=isOppBox(shooter.col,shooter.row,shooter.team), central=isCentral(shooter.col);
+  let p = inBox&&central?60 : inBox?45 : central?40 : 25;
+  p+=aMod(shooter.attrs.shooting);
   if (gk) {
-    const gkDist = chebyshev(gk.col, gk.row, goalCol, goalRow);
-    if (gkDist <= 2) prob -= 15;
-    else prob += 15;
-    prob -= attrMod(gk.attrs.goalkeeping) * 0.6;
+    p += cheby(gk.col,gk.row,gc,gr)<=2 ? -15 : 15;
+    p -= aMod(gk.attrs.goalkeeping)*0.6;
   }
- 
-  const enemies = players.filter(p => p.team !== shooter.team);
-  enemies.forEach(e => {
-    if (chebyshev(e.col, e.row, shooter.col, shooter.row) <= 1) prob -= 15;
+  players.filter(e=>e.team!==shooter.team).forEach(e=>{
+    if (cheby(e.col,e.row,shooter.col,shooter.row)<=1) p-=15;
   });
- 
-  return Math.max(5, Math.min(95, prob));
+  return Math.max(5,Math.min(95,p));
 }
  
-function calcTackleProb(tackler, carrier) {
-  let prob = 45;
-  prob += attrMod(tackler.attrs.defending);
-  prob -= attrMod(carrier.attrs.control) * 0.6;
- 
-  const friendlies = players.filter(p => p.team === tackler.team && p !== tackler);
-  friendlies.forEach(f => {
-    if (chebyshev(f.col, f.row, carrier.col, carrier.row) <= 1) prob += 10;
+function tackleProb(tackler,carrier) {
+  let p=45;
+  p+=aMod(tackler.attrs.defending);
+  p-=aMod(carrier.attrs.control)*0.6;
+  players.filter(f=>f.team===tackler.team&&f!==tackler).forEach(f=>{
+    if (cheby(f.col,f.row,carrier.col,carrier.row)<=1) p+=10;
   });
- 
-  return Math.max(5, Math.min(95, prob));
+  return Math.max(5,Math.min(95,p));
 }
  
-function addLog(msg, type = '') {
-  const el = document.createElement('div');
-  el.className = 'log-entry ' + type;
-  el.textContent = msg;
-  const log = document.getElementById('log-entries');
-  log.insertBefore(el, log.firstChild);
-  if (log.children.length > 30) log.removeChild(log.lastChild);
+// ── Log ───────────────────────────────────────────────────────────────────────
+function log(msg,type='') {
+  const el=document.createElement('div');
+  el.className='log-entry '+type; el.textContent=msg;
+  const container=document.getElementById('log-entries');
+  container.insertBefore(el,container.firstChild);
+  if (container.children.length>30) container.removeChild(container.lastChild);
 }
  
-function dismissGoal() {
-  document.getElementById('goal-overlay').style.display = 'none';
-  kickoff();
+// ── Actions ───────────────────────────────────────────────────────────────────
+function useAction(player,msg) {
+  player.usedThisTurn=true;
+  gs.usedPlayersThisTurn.add(player.id);
+  gs.actionsLeft--;
+  gs.selectedPlayer=null; gs.activeAction=null;
+  if (msg) log(msg,'info');
+  render(); updateUI();
+  if (gs.actionsLeft===0) setTimeout(endTurn,400);
 }
  
-function kickoff() {
-  players.forEach(p => p.hasBall = false);
-  gameState.looseBall = null;
-  players[0].hasBall = true;
-  gameState.currentTeam = 'A';
-  gameState.actionsLeft = 3;
-  gameState.usedPlayersThisTurn = new Set();
-  players.forEach(p => p.usedThisTurn = false);
-  renderBoard();
-  updateUI();
+function doMove(player,tc,tr,isDribble) {
+  if (isDribble&&!player.hasBall){log('No ball to dribble.','fail');return;}
+  player.col=tc; player.row=tr;
+  if (isDribble) gs.looseBall=null;
+  useAction(player,`${player.name} ${isDribble?'dribbles':'moves'} to (${tc},${tr}).`);
+}
+ 
+function doPass(passer,recv) {
+  const prob=passProb(passer,recv), ok=roll(prob);
+  if (ok) {
+    passer.hasBall=false; recv.hasBall=true; gs.looseBall=null;
+    log(`${passer.name} → ${recv.name} (${Math.round(prob)}%) ✓`,'success');
+  } else {
+    passer.hasBall=false;
+    gs.looseBall={col:Math.max(1,Math.min(COLS,Math.round((passer.col+recv.col)/2))),row:Math.max(1,Math.min(ROWS,Math.round((passer.row+recv.row)/2)))};
+    log(`${passer.name} → ${recv.name} (${Math.round(prob)}%) ✗ — loose ball`,'fail');
+  }
+  useAction(passer,null);
+}
+ 
+function doShoot(shooter) {
+  const targets=validShootTargets(shooter); if (!targets.length) return;
+  const t=targets[Math.floor(targets.length/2)];
+  const prob=shootProb(shooter,t.col,t.row), ok=roll(prob);
+  shooter.hasBall=false;
+  if (ok) {
+    log(`${shooter.name} shoots (${Math.round(prob)}%) — GOAL!`,'goal');
+    useAction(shooter,null); scoreGoal(shooter.team);
+  } else {
+    gs.looseBall={col:t.col,row:Math.max(1,Math.min(ROWS,t.row-(shooter.team==='A'?2:-2)))};
+    log(`${shooter.name} shoots (${Math.round(prob)}%) — off target`,'fail');
+    useAction(shooter,null);
+  }
+}
+ 
+function doTackle(tackler,carrier) {
+  const prob=tackleProb(tackler,carrier), ok=roll(prob);
+  if (ok) {
+    carrier.hasBall=false;
+    gs.looseBall={col:Math.max(1,Math.min(COLS,tackler.col+(tackler.col>carrier.col?-1:1))),row:Math.max(1,Math.min(ROWS,tackler.row+(tackler.row>carrier.row?-1:1)))};
+    log(`${tackler.name} tackles ${carrier.name} (${Math.round(prob)}%) ✓ — loose ball`,'success');
+  } else {
+    log(`${tackler.name} tackles ${carrier.name} (${Math.round(prob)}%) ✗`,'fail');
+  }
+  useAction(tackler,null);
+}
+ 
+// ── Turn / goal ───────────────────────────────────────────────────────────────
+function endTurn() {
+  gs.currentTeam = gs.currentTeam==='A'?'B':'A';
+  if (gs.currentTeam==='A') gs.turnCount++;
+  gs.actionsLeft=3; gs.usedPlayersThisTurn=new Set();
+  players.forEach(p=>p.usedThisTurn=false);
+  gs.selectedPlayer=null; gs.activeAction=null;
+  render(); updateUI();
+  log(`--- ${gs.currentTeam==='A'?'Blue':'Red'}'s turn ---`,'info');
 }
  
 function scoreGoal(team) {
-  if (team === 'A') gameState.scoreA++;
-  else gameState.scoreB++;
-  document.getElementById('score-a').textContent = gameState.scoreA;
-  document.getElementById('score-b').textContent = gameState.scoreB;
-  const msg = team === 'A' ? 'Blue scores!' : 'Red scores!';
-  document.getElementById('goal-msg').textContent = msg;
-  addLog('⚽ ' + msg, 'goal');
-  document.getElementById('goal-overlay').style.display = 'flex';
+  if (team==='A') gs.scoreA++; else gs.scoreB++;
+  document.getElementById('score-a').textContent=gs.scoreA;
+  document.getElementById('score-b').textContent=gs.scoreB;
+  const msg=team==='A'?'Blue scores!':'Red scores!';
+  document.getElementById('goal-msg').textContent=msg;
+  log('⚽ '+msg,'goal');
+  document.getElementById('goal-overlay').style.display='flex';
 }
  
-function endTurn() {
-  gameState.currentTeam = gameState.currentTeam === 'A' ? 'B' : 'A';
-  if (gameState.currentTeam === 'A') gameState.turnCount++;
-  gameState.actionsLeft = 3;
-  gameState.usedPlayersThisTurn = new Set();
-  players.forEach(p => p.usedThisTurn = false);
-  gameState.selectedPlayer = null;
-  gameState.activeAction = null;
-  renderBoard();
-  updateUI();
-  addLog(`--- ${gameState.currentTeam === 'A' ? 'Blue' : 'Red'}'s turn ---`, 'info');
+function dismissGoal() {
+  document.getElementById('goal-overlay').style.display='none';
+  players.forEach(p=>p.hasBall=false); gs.looseBall=null;
+  players[9].hasBall=true;
+  gs.currentTeam='A'; gs.actionsLeft=3; gs.usedPlayersThisTurn=new Set();
+  players.forEach(p=>p.usedThisTurn=false);
+  render(); updateUI();
 }
  
+// ── Click handlers ────────────────────────────────────────────────────────────
 function selectPlayer(player) {
-  if (player.team !== gameState.currentTeam) {
-    if (gameState.activeAction === 'tackle') {
-      executeTackle(gameState.selectedPlayer, player);
-    } else if (gameState.activeAction === 'pass') {
-      executePass(gameState.selectedPlayer, player);
-    }
+  if (player.team!==gs.currentTeam) {
+    if (gs.activeAction==='tackle') doTackle(gs.selectedPlayer,player);
+    else if (gs.activeAction==='pass') doPass(gs.selectedPlayer,player);
     return;
   }
-  if (gameState.usedPlayersThisTurn.has(player.id)) {
-    addLog(player.name + ' already acted this turn.', '');
-    return;
-  }
-  gameState.selectedPlayer = player;
-  gameState.activeAction = null;
-  renderBoard();
-  updateUI();
+  if (gs.usedPlayersThisTurn.has(player.id)) { log(player.name+' already acted.',''); return; }
+  gs.selectedPlayer=player; gs.activeAction=null;
+  render(); updateUI();
 }
  
 function setAction(action) {
-  const p = gameState.selectedPlayer;
-  if (!p) return;
-  if (action === 'shoot') {
-    const targets = getValidShootTargets(p);
-    if (!p.hasBall && !gameState.looseBall) { addLog('No ball to shoot!', 'fail'); return; }
-    if (targets.length === 0) { addLog('Not in shooting range.', 'fail'); return; }
-    gameState.activeAction = 'shoot';
-  } else if (action === 'pass') {
-    if (!p.hasBall) { addLog('Player does not have the ball.', 'fail'); return; }
-    gameState.activeAction = 'pass';
-  } else if (action === 'tackle') {
-    const targets = getValidTackleTargets(p);
-    if (targets.length === 0) { addLog('No ball carrier in range.', 'fail'); return; }
-    gameState.activeAction = 'tackle';
-  } else {
-    gameState.activeAction = action;
-  }
-  renderBoard();
-  updateUI();
+  const p=gs.selectedPlayer; if (!p) return;
+  if (action==='pass'&&!p.hasBall){log('No ball.','fail');return;}
+  if (action==='shoot'&&!p.hasBall){log('No ball.','fail');return;}
+  if (action==='shoot'&&!validShootTargets(p).length){log('Out of range.','fail');return;}
+  if (action==='tackle'&&!validTackleTargets(p).length){log('No target in range.','fail');return;}
+  gs.activeAction=action; render(); updateUI();
 }
  
-function executeMove(player, toCol, toRow, isDribble) {
-  const label = isDribble ? 'dribbles' : 'moves';
-  if (isDribble && !player.hasBall) { addLog('No ball to dribble.', 'fail'); return; }
-  player.col = toCol;
-  player.row = toRow;
-  if (isDribble) {
-    gameState.looseBall = null;
-  }
-  useAction(player, `${player.name} ${label} to (${toCol}, ${toRow}).`);
-}
- 
-function executePass(passer, receiver) {
-  const prob = calcPassProb(passer, receiver);
-  const success = rollProbability(prob);
-  const probDisplay = Math.round(prob);
-  if (success) {
-    passer.hasBall = false;
-    receiver.hasBall = true;
-    gameState.looseBall = null;
-    addLog(`${passer.name} → ${receiver.name} (${probDisplay}%) ✓`, 'success');
-  } else {
-    passer.hasBall = false;
-    gameState.looseBall = { col: Math.round((passer.col + receiver.col) / 2), row: Math.round((passer.row + receiver.row) / 2) };
-    gameState.looseBall.col = Math.max(1, Math.min(COLS, gameState.looseBall.col));
-    gameState.looseBall.row = Math.max(1, Math.min(ROWS, gameState.looseBall.row));
-    addLog(`${passer.name} → ${receiver.name} (${probDisplay}%) ✗ — loose ball`, 'fail');
-  }
-  useAction(passer, null);
-}
- 
-function executeShoot(shooter) {
-  const targets = getValidShootTargets(shooter);
-  if (targets.length === 0) return;
-  const target = targets[Math.floor(targets.length / 2)];
-  const prob = calcShootProb(shooter, target.col, target.row);
-  const success = rollProbability(prob);
-  const probDisplay = Math.round(prob);
-  shooter.hasBall = false;
-  if (success) {
-    addLog(`${shooter.name} shoots (${probDisplay}%) — GOAL!`, 'goal');
-    useAction(shooter, null);
-    scoreGoal(shooter.team);
-  } else {
-    gameState.looseBall = { col: target.col, row: Math.max(1, Math.min(ROWS, target.row - (shooter.team === 'A' ? 2 : -2))) };
-    addLog(`${shooter.name} shoots (${probDisplay}%) — off target`, 'fail');
-    useAction(shooter, null);
-  }
-}
- 
-function executeTackle(tackler, carrier) {
-  const prob = calcTackleProb(tackler, carrier);
-  const success = rollProbability(prob);
-  const probDisplay = Math.round(prob);
-  if (success) {
-    carrier.hasBall = false;
-    const lbCol = Math.max(1, Math.min(COLS, tackler.col + (tackler.col > carrier.col ? -1 : 1)));
-    const lbRow = Math.max(1, Math.min(ROWS, tackler.row + (tackler.row > carrier.row ? -1 : 1)));
-    gameState.looseBall = { col: lbCol, row: lbRow };
-    addLog(`${tackler.name} tackles ${carrier.name} (${probDisplay}%) ✓ — loose ball`, 'success');
-  } else {
-    addLog(`${tackler.name} tackles ${carrier.name} (${probDisplay}%) ✗`, 'fail');
-  }
-  useAction(tackler, null);
-}
- 
-function useAction(player, msg) {
-  player.usedThisTurn = true;
-  gameState.usedPlayersThisTurn.add(player.id);
-  gameState.actionsLeft--;
-  gameState.selectedPlayer = null;
-  gameState.activeAction = null;
-  if (msg) addLog(msg, 'info');
-  renderBoard();
-  updateUI();
-  if (gameState.actionsLeft === 0) {
-    setTimeout(endTurn, 400);
-  }
-}
- 
-function handleCellClick(col, row) {
-  const player = getPlayer(col, row);
-  const gs = gameState;
- 
-  if (player && player.team === gs.currentTeam && gs.activeAction !== 'tackle' && gs.activeAction !== 'pass') {
-    selectPlayer(player);
-    return;
-  }
- 
+function handleCellClick(col,row) {
+  const player=getPlayer(col,row);
+  if (player&&player.team===gs.currentTeam&&gs.activeAction!=='tackle'&&gs.activeAction!=='pass') { selectPlayer(player); return; }
   if (!gs.selectedPlayer) return;
-  const sel = gs.selectedPlayer;
- 
-  if (gs.activeAction === 'move' || gs.activeAction === 'dribble') {
-    if (canMoveToSquare(sel, col, row)) {
-      executeMove(sel, col, row, gs.activeAction === 'dribble');
-    }
-    return;
+  const sel=gs.selectedPlayer;
+  if (gs.activeAction==='move'||gs.activeAction==='dribble') {
+    if (canMove(sel,col,row)) doMove(sel,col,row,gs.activeAction==='dribble'); return;
   }
- 
-  if (gs.activeAction === 'pass') {
-    if (player && player.team === sel.team && player !== sel) {
-      executePass(sel, player);
-    }
-    return;
-  }
- 
-  if (gs.activeAction === 'shoot') {
-    const goalRow = sel.team === 'A' ? 20 : 1;
-    if (row === goalRow && col >= 6 && col <= 10) {
-      executeShoot(sel);
-    }
-    return;
-  }
- 
-  if (gs.activeAction === 'tackle') {
-    if (player && player.team !== sel.team) {
-      executeTackle(sel, player);
-    }
-    return;
-  }
+  if (gs.activeAction==='pass') { if (player&&player.team===sel.team&&player!==sel) doPass(sel,player); return; }
+  if (gs.activeAction==='shoot') { const gr=sel.team==='A'?20:1; if (row===gr&&col>=6&&col<=10) doShoot(sel); return; }
+  if (gs.activeAction==='tackle') { if (player&&player.team!==sel.team) doTackle(sel,player); return; }
 }
  
-function renderBoard() {
-  const board = document.getElementById('board');
-  board.innerHTML = '';
+// ── Render ────────────────────────────────────────────────────────────────────
+function render() {
+  const board=document.getElementById('board');
+  board.innerHTML='';
+  for (let r=1;r<=ROWS;r++) {
+    for (let c=1;c<=COLS;c++) {
+      const cell=document.createElement('div');
+      cell.className='cell'; cell.dataset.col=c; cell.dataset.row=r;
  
-  for (let r = 1; r <= ROWS; r++) {
-    for (let c = 1; c <= COLS; c++) {
-      const cell = document.createElement('div');
-      cell.className = 'cell';
-      cell.dataset.col = c;
-      cell.dataset.row = r;
+      // Zone colours
+      if (r<=3||r>=18) cell.classList.add('zone-end');
+      else if (isBlueBox(c,r)||isRedBox(c,r)) cell.classList.add('zone-penalty');
  
-      const isEndZone = (r <= 3 || r >= 18);
-      const isPenBox = ((r <= 5 && c >= 5 && c <= 11) || (r >= 16 && c >= 5 && c <= 11));
-      if (isEndZone) cell.classList.add('zone-end');
-      if (isPenBox) cell.classList.add('zone-penalty');
+      // Coordinate label
+      const lbl=document.createElement('div');
+      lbl.className='coord-label'; lbl.textContent=`${c},${r}`; cell.appendChild(lbl);
  
-      const sel = gameState.selectedPlayer;
-      const action = gameState.activeAction;
-
-      if (sel && sel.col === c && sel.row === r) cell.classList.add('selected');
-
-      if (sel && (action === 'move' || action === 'dribble')) {
-        const moves = getValidMoves(sel);
-        if (moves.find(m => m.col === c && m.row === r)) cell.classList.add('valid-move');
-      }
+      // Highlights
+      const sel=gs.selectedPlayer, act=gs.activeAction;
+      if (sel&&sel.col===c&&sel.row===r) cell.classList.add('selected');
+      if (sel&&(act==='move'||act==='dribble')&&validMoves(sel).find(m=>m.col===c&&m.row===r)) cell.classList.add('valid-move');
+      if (sel&&act==='pass') { const p=getPlayer(c,r); if (p&&validPassTargets(sel).includes(p)) cell.classList.add('valid-move'); }
+      if (sel&&act==='shoot') { const gr=sel.team==='A'?20:1; if (r===gr&&c>=6&&c<=10) cell.classList.add('valid-move'); }
+      if (sel&&act==='tackle') { const p=getPlayer(c,r); if (p&&validTackleTargets(sel).includes(p)) cell.classList.add('valid-move'); }
  
-      if (sel && action === 'pass') {
-        const targets = getValidPassTargets(sel);
-        const p = getPlayer(c, r);
-        if (p && targets.includes(p)) cell.classList.add('valid-move');
-      }
+      cell.addEventListener('click',()=>handleCellClick(c,r));
  
-      if (sel && action === 'shoot') {
-        const goalRow = sel.team === 'A' ? 20 : 1;
-        if (r === goalRow && c >= 6 && c <= 10) cell.classList.add('valid-move');
-      }
- 
-      if (sel && action === 'tackle') {
-        const targets = getValidTackleTargets(sel);
-        const p = getPlayer(c, r);
-        if (p && targets.includes(p)) cell.classList.add('valid-move');
-      }
- 
-      cell.addEventListener('click', () => handleCellClick(c, r));
- 
-      const player = getPlayer(c, r);
+      // Player piece
+      const player=getPlayer(c,r);
       if (player) {
-        const piece = document.createElement('div');
-        piece.className = `piece team-${player.team.toLowerCase()}`;
+        const piece=document.createElement('div');
+        piece.className=`piece team-${player.team.toLowerCase()}`;
         if (player.hasBall) piece.classList.add('has-ball');
-        if (sel && sel.id === player.id) piece.classList.add('selected-piece');
-        piece.textContent = ARCHETYPES[player.archetype].label;
+        if (sel&&sel.id===player.id) piece.classList.add('selected-piece');
+        piece.textContent=ARCHETYPES[player.archetype].label;
         cell.appendChild(piece);
       }
  
-      if (gameState.looseBall && gameState.looseBall.col === c && gameState.looseBall.row === r) {
-        const ball = document.createElement('div');
-        ball.className = 'ball-loose';
-        cell.appendChild(ball);
+      // Loose ball
+      if (gs.looseBall&&gs.looseBall.col===c&&gs.looseBall.row===r) {
+        const ball=document.createElement('div'); ball.className='ball-loose'; cell.appendChild(ball);
       }
  
       board.appendChild(cell);
@@ -701,63 +524,38 @@ function renderBoard() {
   }
 }
  
+// ── UI update ─────────────────────────────────────────────────────────────────
 function updateUI() {
-  const gs = gameState;
-  document.getElementById('turn-team').textContent = gs.currentTeam === 'A' ? "Blue's Turn" : "Red's Turn";
+  document.getElementById('turn-team').textContent = gs.currentTeam==='A'?"Blue's Turn":"Red's Turn";
   document.getElementById('turn-count').textContent = gs.turnCount;
- 
-  for (let i = 0; i < 3; i++) {
-    const pip = document.getElementById('pip' + i);
-    pip.classList.toggle('used', i >= gs.actionsLeft);
-  }
- 
-  const sel = gs.selectedPlayer;
-  const info = document.getElementById('selected-info');
+  for (let i=0;i<3;i++) document.getElementById('pip'+i).classList.toggle('used',i>=gs.actionsLeft);
+  const sel=gs.selectedPlayer;
+  const info=document.getElementById('selected-info');
   if (sel) {
-    const a = sel.attrs;
-    const attrNames = ['pace','passing','control','shooting','defending','goalkeeping'];
-    info.innerHTML = `
-      <div class="piece-name">${sel.name}</div>
-      <div class="piece-type">${sel.archetype} — ${sel.team === 'A' ? 'Blue' : 'Red'}</div>
-      ${attrNames.map(attr => `
-        <div class="attr-row">
-          <span class="attr-label">${attr}</span>
-          <div class="attr-bar">${[1,2,3,4,5,6,7,8,9,10].map(n => `<div class="attr-pip ${n <= a[attr] ? 'filled' : ''}"></div>`).join('')}</div>
-        </div>`).join('')}
-    `;
+    const a=sel.attrs, attrs=['pace','passing','control','shooting','defending','goalkeeping'];
+    info.innerHTML=`<div class="piece-name">${sel.name}</div><div class="piece-type">${sel.archetype} — ${sel.team==='A'?'Blue':'Red'}</div>`+
+      attrs.map(attr=>`<div class="attr-row"><span class="attr-label">${attr}</span><div class="attr-bar">${[1,2,3,4,5,6,7,8,9,10].map(n=>`<div class="attr-pip ${n<=a[attr]?'filled':''}"></div>`).join('')}</div></div>`).join('');
   } else {
-    info.innerHTML = '<div style="color:#555; font-size:13px;">Click a player to select</div>';
+    info.innerHTML='<div style="color:#555;font-size:13px;">Click a player to select</div>';
   }
- 
-  const hasBall = sel && sel.hasBall;
-  const inRange = sel && getValidTackleTargets(sel).length > 0;
-  const canShoot = sel && getValidShootTargets(sel).length > 0 && sel.hasBall;
-  const alreadyUsed = sel && gameState.usedPlayersThisTurn.has(sel.id);
-  const wrongTeam = sel && sel.team !== gs.currentTeam;
-  const disabled = !sel || alreadyUsed || wrongTeam;
- 
-  document.getElementById('btn-move').disabled = disabled;
-  document.getElementById('btn-dribble').disabled = disabled || !hasBall;
-  document.getElementById('btn-pass').disabled = disabled || !hasBall;
-  document.getElementById('btn-shoot').disabled = disabled || !canShoot;
-  document.getElementById('btn-tackle').disabled = disabled || !inRange;
- 
-  ['move','dribble','pass','shoot','tackle'].forEach(a => {
-    document.getElementById('btn-' + a).classList.toggle('active', gs.activeAction === a);
-  });
+  const hb=sel&&sel.hasBall, au=sel&&gs.usedPlayersThisTurn.has(sel.id), wt=sel&&sel.team!==gs.currentTeam, dis=!sel||au||wt;
+  document.getElementById('btn-move').disabled=dis;
+  document.getElementById('btn-dribble').disabled=dis||!hb;
+  document.getElementById('btn-pass').disabled=dis||!hb;
+  document.getElementById('btn-shoot').disabled=dis||!hb||!(sel&&validShootTargets(sel).length);
+  document.getElementById('btn-tackle').disabled=dis||!(sel&&validTackleTargets(sel).length);
+  ['move','dribble','pass','shoot','tackle'].forEach(a=>document.getElementById('btn-'+a).classList.toggle('active',gs.activeAction===a));
 }
  
-document.getElementById('btn-move').addEventListener('click', () => setAction('move'));
-document.getElementById('btn-dribble').addEventListener('click', () => setAction('dribble'));
-document.getElementById('btn-pass').addEventListener('click', () => setAction('pass'));
-document.getElementById('btn-shoot').addEventListener('click', () => setAction('shoot'));
-document.getElementById('btn-tackle').addEventListener('click', () => setAction('tackle'));
-document.getElementById('end-turn-btn').addEventListener('click', endTurn);
+document.getElementById('btn-move').addEventListener('click',()=>setAction('move'));
+document.getElementById('btn-dribble').addEventListener('click',()=>setAction('dribble'));
+document.getElementById('btn-pass').addEventListener('click',()=>setAction('pass'));
+document.getElementById('btn-shoot').addEventListener('click',()=>setAction('shoot'));
+document.getElementById('btn-tackle').addEventListener('click',()=>setAction('tackle'));
+document.getElementById('end-turn-btn').addEventListener('click',endTurn);
  
-renderBoard();
-updateUI();
-addLog('Kick-off — Blue starts.', 'info');
+render(); updateUI();
+log('Kick-off — Blue starts.','info');
 </script>
 </body>
 </html>
- 
